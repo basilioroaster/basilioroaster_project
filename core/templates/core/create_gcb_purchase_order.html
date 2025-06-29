@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create GCB Purchase Order</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-input { @apply w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm; }
+        .form-label { @apply block text-sm font-medium text-gray-700 mb-1; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div class="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+            
+            <h1 class="text-2xl font-bold text-gray-900 mb-2 border-b pb-4">Create Green Coffee Bean (GCB) Purchase Order</h1>
+
+            <!-- Block to display success/info messages from the Django Messages Framework -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mt-4 px-4 py-3 rounded relative 
+                        {% if message.tags == 'success' %} bg-green-100 border border-green-400 text-green-700 
+                        {% else %} bg-blue-100 border border-blue-400 text-blue-700 {% endif %}"
+                        role="alert">
+                        <span class="block sm:inline">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Block to display a specific error message from the view context -->
+            {% if error_message %}
+            <div class="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline">{{ error_message }}</span>
+            </div>
+            {% endif %}
+
+            <div class="text-right my-4">
+                <p>Logged in as: <strong>{{ request.user.username }}</strong> | <a href="{% url 'logout' %}" class="text-indigo-600 hover:underline">Logout</a></p>
+            </div>
+
+            <form id="po-form" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="line_items_json" id="line_items_json">
+
+                <!-- PO Header Section -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div>
+                        <label for="po_number" class="form-label">PO Number</label>
+                        <input type="text" name="po_number" id="po_number" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="supplier_name" class="form-label">Supplier Name</label>
+                        <input type="text" name="supplier_name" id="supplier_name" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="order_date" class="form-label">Order Date</label>
+                        <input type="date" name="order_date" id="order_date" value="{{ today_date }}" class="form-input" required>
+                    </div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="mb-8 p-4 border border-dashed rounded-md">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Associated Documents</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                           <label for="signed_po_scan" class="form-label">Signed PO Scan (PDF/Image)</label>
+                           <input type="file" name="signed_po_scan" id="signed_po_scan" class="form-input">
+                        </div>
+                        <div>
+                           <label for="supplier_photo" class="form-label">Supplier Acceptance Photo</label>
+                           <input type="file" name="supplier_photo" id="supplier_photo" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GCB Line Items Section -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800">GCB Line Items</h2>
+                        <button type="button" id="add-item-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow-sm">Add GCB Item</button>
+                    </div>
+                    <div id="line-items-container" class="space-y-4">
+                        <!-- JS will add item cards here -->
+                    </div>
+                </div>
+
+                <!-- PO Summary & Actions -->
+                <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end items-center space-x-4">
+                    <div class="text-lg font-semibold text-gray-800">
+                        <span>Total Amount:</span>
+                        <span id="total-amount" class="ml-2">₱0.00</span>
+                    </div>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm">
+                        Submit GCB Purchase Order
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Selects for data -->
+    <select id="gcb-options" class="hidden">
+        {% for item in bean_varietals %}
+        <option value="{{ item.varietal_id }}">{{ item.name }}</option>
+        {% endfor %}
+    </select>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const addItemBtn = document.getElementById('add-item-btn');
+            const lineItemsContainer = document.getElementById('line-items-container');
+            const poForm = document.getElementById('po-form');
+            const lineItemsJsonInput = document.getElementById('line_items_json');
+            let itemCounter = 0;
+
+            addItemBtn.addEventListener('click', () => addLineItemCard());
+
+            function addLineItemCard() {
+                itemCounter++;
+                const card = document.createElement('div');
+                card.className = 'p-4 border rounded-md bg-gray-50 item-card';
+                card.dataset.itemId = itemCounter;
+                
+                const gcbOptionsHtml = document.getElementById('gcb-options').innerHTML;
+
+                card.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="form-label">Bean Varietal</label>
+                            <select class="form-input item-select">${gcbOptionsHtml}</select>
+                        </div>
+                        <div>
+                            <label class="form-label">Quantity (kg)</label>
+                            <input type="number" class="form-input quantity-input" min="0" step="0.01" value="1">
+                        </div>
+                        <div>
+                            <label class="form-label">Unit Price</label>
+                            <input type="number" class="form-input price-input" min="0" step="0.01" value="0.00">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="form-label">Custom Characteristics</label>
+                        <div class="space-y-2 attributes-container">
+                            <!-- JS adds attribute rows here -->
+                        </div>
+                        <button type="button" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800 add-attribute-btn">+ Add Characteristic</button>
+                    </div>
+                    <button type="button" class="mt-4 text-sm text-red-600 hover:text-red-800 remove-item-btn">Remove Item</button>
+                `;
+                lineItemsContainer.appendChild(card);
+            }
+
+            lineItemsContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('add-attribute-btn')) {
+                    const container = e.target.previousElementSibling;
+                    const attrRow = document.createElement('div');
+                    attrRow.className = 'flex space-x-2';
+                    attrRow.innerHTML = `
+                        <input type="text" placeholder="Attribute (e.g., Process)" class="form-input attr-key">
+                        <input type="text" placeholder="Value (e.g., Lactic Fermentation)" class="form-input attr-value">
+                        <button type="button" class="text-red-500 p-2 remove-attr-btn">&times;</button>
+                    `;
+                    container.appendChild(attrRow);
+                }
+                if (e.target.classList.contains('remove-attr-btn')) {
+                    e.target.parentElement.remove();
+                }
+                if (e.target.classList.contains('remove-item-btn')) {
+                    e.target.closest('.item-card').remove();
+                    updateTotals();
+                }
+            });
+
+            lineItemsContainer.addEventListener('input', function(e) {
+                if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
+                    updateTotals();
+                }
+            });
+
+            function updateTotals() {
+                let grandTotal = 0;
+                document.querySelectorAll('.item-card').forEach(card => {
+                    const quantity = parseFloat(card.querySelector('.quantity-input').value) || 0;
+                    const price = parseFloat(card.querySelector('.price-input').value) || 0;
+                    grandTotal += quantity * price;
+                });
+                document.getElementById('total-amount').textContent = '₱' + grandTotal.toFixed(2);
+            }
+
+            poForm.addEventListener('submit', function(e) {
+                const lineItems = [];
+                document.querySelectorAll('.item-card').forEach(card => {
+                    const itemId = card.querySelector('.item-select').value;
+                    if (!itemId) return;
+
+                    const attributes = [];
+                    card.querySelectorAll('.attributes-container .flex').forEach(attrRow => {
+                        const key = attrRow.querySelector('.attr-key').value;
+                        const value = attrRow.querySelector('.attr-value').value;
+                        if (key) {
+                            attributes.push({ key: key, value: value });
+                        }
+                    });
+
+                    lineItems.push({
+                        itemId: itemId,
+                        itemType: 'Green Bean',
+                        quantity: card.querySelector('.quantity-input').value,
+                        unitPrice: card.querySelector('.price-input').value,
+                        customAttributes: attributes
+                    });
+                });
+                lineItemsJsonInput.value = JSON.stringify(lineItems);
+            });
+        });
+    </script>
+</body>
+</html>

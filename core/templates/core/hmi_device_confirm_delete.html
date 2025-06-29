@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Deletion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-lg mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="bg-white shadow rounded-lg p-8 text-center">
+            <h1 class="text-2xl font-bold text-red-700 mb-4">Confirm Deletion</h1>
+            <p class="text-gray-600 mb-6">Are you sure you want to delete the device with ID: <strong>{{ object.device_id }}</strong>?</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex justify-center space-x-4">
+                    <a href="{% url 'device_list' %}" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Cancel</a>
+                    <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 shadow-sm">Yes, Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

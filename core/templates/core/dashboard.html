@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+            <div class="bg-white shadow rounded-lg p-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800">Welcome, {{ user.username }}!</h1>
+                    <a href="{% url 'logout' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Logout</a>
+                </div>
+                <p class="mt-2 text-gray-600">This is your main navigation hub. Choose an option below to get started.</p>
+                
+                <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <a href="{% url 'create_gcb_purchase_order' %}" class="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+                        <h3 class="font-semibold text-gray-900">Create GCB Purchase Order</h3>
+                        <p class="mt-2 text-sm text-gray-500">Start a new procurement order for green coffee beans.</p>
+                    </a>
+                    
+                    <a href="{% url 'admin:index' %}" class="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+                        <h3 class="font-semibold text-gray-900">Admin Dashboard</h3>
+                        <p class="mt-2 text-sm text-gray-500">Manage users, locations, and other application data.</p>
+                    </a>
+
+                    </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

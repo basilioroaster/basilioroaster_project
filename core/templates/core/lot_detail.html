@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lot Details: {{ lot.lot_identifier }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-4xl mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="bg-white shadow rounded-lg p-8">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ lot.lot_identifier }}</h1>
+                    <p class="text-gray-500">Lot Details</p>
+                </div>
+                <a href="{% url 'dashboard' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Back to Dashboard</a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Bean Information</h3>
+                    <dl class="mt-2 space-y-2 text-gray-700">
+                        <div class="flex justify-between"><dt>Varietal:</dt><dd class="font-medium">{{ lot.bean_varietal.name|default:"N/A" }}</dd></div>
+                        <div class="flex justify-between"><dt>Farm:</dt><dd class="font-medium">{{ lot.bean_varietal.farm.name|default:"N/A" }}</dd></div>
+                    </dl>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Inventory & Provenance</h3>
+                    <dl class="mt-2 space-y-2 text-gray-700">
+                        <div class="flex justify-between"><dt>Current Weight:</dt><dd class="font-medium">{{ lot.current_stock_kg }} kg</dd></div>
+                        <div class="flex justify-between"><dt>Initial Weight:</dt><dd class="font-medium">{{ lot.initial_weight_kg }} kg</dd></div>
+                        <div class="flex justify-between"><dt>Supplier:</dt><dd class="font-medium">{{ lot.supplier_name|default:"N/A" }}</dd></div>
+                        <div class="flex justify-between"><dt>From Purchase Order:</dt><dd class="font-medium">{{ lot.purchase_order.po_number|default:"N/A" }}</dd></div>
+                        <div class="flex justify-between"><dt>Arrival Date:</dt><dd class="font-medium">{{ lot.arrival_date|date:"Y-m-d" }}</dd></div>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- You can add a history of processing logs here in the future -->
+
+        </div>
+    </div>
+</body>
+</html>

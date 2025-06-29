@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live QR Code Label Display</title>
+    <!-- [CORRECTED] Removed Markdown formatting from the URL -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- [CORRECTED] Removed Markdown formatting from the URL -->
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+</head>
+<body class="bg-gray-800 text-white flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md bg-gray-900 rounded-lg shadow-xl p-8 border border-gray-700">
+        <h1 class="text-2xl font-bold text-center text-green-400 mb-4">Live Inventory Label</h1>
+        <p id="status-text" class="text-center text-gray-400 mb-6">Waiting for new lot from MQTT scale...</p>
+
+        <div id="label-content" class="hidden">
+            <div class="flex justify-center mb-6">
+                <!-- The QR Code will be generated and displayed here -->
+                <canvas id="qr-code" class="bg-white p-2 rounded-md"></canvas>
+            </div>
+            <div class="space-y-3 text-lg">
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Lot ID:</span>
+                    <span id="lot-id" class="font-mono text-green-300"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Bean:</span>
+                    <span id="bean-name" class="font-bold"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Weight:</span>
+                    <span id="weight"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Supplier:</span>
+                    <span id="supplier"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Arrival:</span>
+                    <span id="arrival-date"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusText = document.getElementById('status-text');
+            const labelContent = document.getElementById('label-content');
+            let lastKnownLotId = null;
+
+            // This function fetches the latest lot data from our API
+            async function fetchLatestLot() {
+                try {
+                    const response = await fetch("{% url 'api_latest_lot' %}");
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+
+                    // Check if the lot is new
+                    if (data.lot_identifier && data.lot_identifier !== lastKnownLotId) {
+                        console.log("New lot detected!", data.lot_identifier);
+                        lastKnownLotId = data.lot_identifier;
+                        updateLabel(data);
+                    }
+                } catch (error) {
+                    console.error("Error fetching latest lot:", error);
+                }
+            }
+
+            // This function updates the HTML and generates the QR code
+            function updateLabel(data) {
+                document.getElementById('lot-id').textContent = data.lot_identifier;
+                document.getElementById('bean-name').textContent = data.bean_name;
+                document.getElementById('weight').textContent = `${data.weight_kg} kg`;
+                document.getElementById('supplier').textContent = data.supplier;
+                document.getElementById('arrival-date').textContent = data.arrival_date;
+
+                // Generate the QR code using the NEW URL from the API payload
+                new QRious({
+                    element: document.getElementById('qr-code'),
+                    value: data.qr_code_url, // Use the full URL here instead of just the lot_identifier
+                    size: 200,
+                    padding: 10,
+                    background: 'white',
+                    foreground: 'black'
+                });
+
+                // Show the label content
+                statusText.classList.add('hidden');
+                labelContent.classList.remove('hidden');
+            }
+
+            // Poll the API every 3 seconds to check for a new lot
+            setInterval(fetchLatestLot, 3000);
+            
+            // Also fetch immediately on page load
+            fetchLatestLot();
+        });
+    </script>
+</body>
+</html>
